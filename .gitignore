@@ -1,0 +1,30 @@
+.venv/
+.pip-cache/
+data/
+.env
+models.local.json
+models.local.tmp
+_snapshot_*/
+server.log
+server.err.log
+__pycache__/
+*.pyc
+_backup_*/
+# 本地日志
+desktop.log
+server.log.out
+# 测试 / 调试残渣
+tagtest.py
+test_apicall.ps1
+vision_diag.py
+grab_images_existing.py
+retag_existing.py
+restart_server.ps1
+# 测试 PDF（来源受限 / 版权）
+test_pdfs/
+# 机器相关：读取本机凭据 / 修改本机开发配置的脚本
+scripts/codex_deepseek_auth.py
+scripts/repair_codex_providers.py
+# 内部开发交接与模型切换说明（含本机路径与用户名），若要公开请先脱敏
+docs/开发交接.md
+docs/模型切换.md

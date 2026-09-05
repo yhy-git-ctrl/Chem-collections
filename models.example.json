@@ -1,0 +1,21 @@
+{
+  "active_provider": "deepseek",
+  "providers": {
+    "deepseek": {
+      "base_url": "https://api.deepseek.com/v1",
+      "api_key_env": "OPENAI_API_KEY",
+      "text_model": "deepseek-v4-flash",
+      "vision_model": "deepseek-v4-flash-vision-exp",
+      "text_options": {"max_tokens": 4000, "temperature": 0, "reasoning_effort": "low"},
+      "vision_options": {"max_tokens": 4096, "temperature": 0, "reasoning_effort": "low"}
+    },
+    "gpt": {
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "GPT_API_KEY",
+      "text_model": "gpt-4o-mini",
+      "vision_model": "gpt-4o-mini",
+      "text_options": {"max_tokens": 4000, "temperature": 0},
+      "vision_options": {"max_tokens": 4096, "temperature": 0}
+    }
+  }
+}

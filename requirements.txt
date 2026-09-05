@@ -1,0 +1,14 @@
+rdkit
+fastapi
+uvicorn[standard]
+requests
+beautifulsoup4
+lxml
+pymupdf
+pdfplumber
+jieba
+openai
+python-dotenv
+python-multipart
+pywebview
+python-pptx

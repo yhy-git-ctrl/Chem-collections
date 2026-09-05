@@ -1,0 +1,348 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>化学文献库</title>
+<style>
+ :root{--blue:#1e6fd0;--ink:#1f2733;--line:#e4e8ee;--muted:#6b7a89;--bg:#f4f6f9}
+ *{box-sizing:border-box}
+ body{font-family:system-ui,Segoe UI,Arial,"Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:var(--ink)}
+ .topbar{background:linear-gradient(90deg,#1e6fd0,#3a86ff);color:#fff;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+ .topbar h1{font-size:19px;font-weight:600;margin:0}
+ .nav{display:flex;gap:6px}
+ .nav button{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:8px;padding:8px 16px;font-size:14px;cursor:pointer}
+ .nav button.on{background:#fff;color:var(--blue);font-weight:600}
+ main{max-width:1160px;margin:20px auto;padding:0 16px}
+ .view{display:none}.view.on{display:block}
+ .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+ .card h3{margin:0 0 10px;font-size:15px;color:#16324f}
+ .card h3 small{font-weight:400;color:var(--muted);font-size:12px;margin-left:8px}
+ .row{display:flex;gap:8px;margin-top:8px}
+ input[type=text]{width:100%;padding:10px;border:1px solid #d4dbe4;border-radius:8px;font-size:14px}
+ button{padding:9px 15px;border:0;border-radius:8px;background:var(--blue);color:#fff;cursor:pointer;font-size:14px;white-space:nowrap}
+ button:hover{background:#1656a6}
+ button.green{background:#1f9d63}.button.green:hover{background:#17854f}
+ button.link{background:#eef3f9;color:#1e6fd0}
+ button:disabled{opacity:.6}
+ a{color:var(--blue);text-decoration:none}
+ table{width:100%;border-collapse:collapse;font-size:14px}
+ th{background:#f7f9fc;text-align:left;padding:8px;border-bottom:2px solid var(--line);color:#445}
+ td{padding:8px;border-bottom:1px solid #eef1f6}
+ .empty{color:#93a1b0;text-align:center;padding:18px}
+
+ /* ===== 知识卡片：16:9 PPT 版式，图片优先 ===== */
+ .doc{max-width:1280px;margin:0 auto}
+ .page{aspect-ratio:16/9;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:8px;padding:22px 26px;margin-bottom:22px;box-shadow:0 4px 16px rgba(16,24,40,.08)}
+ .page-head{display:flex;gap:10px;align-items:stretch;margin-bottom:12px}
+ .ph{flex:2;border:1px solid var(--line);border-radius:5px;padding:8px 14px}
+ .ph.small{flex:.7;text-align:left}
+ .ph b{display:block;font-size:12px;color:#16324f;margin-bottom:2px}
+ .ph .val{font-size:12px;color:var(--muted);line-height:1.5}
+ .topic{border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:5px;padding:8px 14px;margin-bottom:12px}
+ .topic .lbl{font-size:11px;color:var(--muted);margin-bottom:2px}
+ .topic .t{font-size:15px;font-weight:600;color:#16324f}
+ .grid{flex:1;min-height:0;display:grid;grid-template-columns:1.05fr 1fr;grid-template-rows:1fr 1fr;gap:12px}
+ .box{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:5px;padding:10px 14px}
+ .rx-col{grid-row:span 2}
+ .box>.lbl{font-size:12px;color:var(--muted);margin-bottom:6px}
+ .box>.lbl b{color:#16324f;font-weight:600}
+ .rxfigs{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+ .rxfigs .fig{flex:1;min-height:0}
+ .fig{position:relative;min-height:0;flex:1;border:1px dashed #c9d2dc;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#9aa7b5;font-size:12px;background:#fbfcfe}
+ .fig img{max-height:100%;max-width:100%;object-fit:contain;cursor:zoom-in}
+ .fig .note{position:absolute;bottom:4px;right:8px;font-size:10px;color:#a9b4c0}
+ .cap{font-size:12px;color:var(--muted);line-height:1.6;margin-top:6px;white-space:pre-wrap}
+ .cap.sc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .page-foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+ .mech{font-size:13px;color:#33424f;line-height:1.8;white-space:pre-wrap;margin-top:8px}
+ .mech .st{padding:4px 0;border-bottom:1px dashed #e7ebf1}
+ .imgassign{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+ .ia-item{background:#fbfcfe;border:1px solid #e7ebf1;border-radius:8px;padding:6px;text-align:center}
+ .ia-item img{max-width:100%;max-height:160px;object-fit:contain;background:#fff;border-radius:4px;cursor:zoom-in;display:block;margin:0 auto}
+ .ia-item img:hover{border:1px solid var(--blue)}
+ .ia-item select{width:100%;margin-top:5px;padding:4px;border:1px solid #d4dbe4;border-radius:6px;font-size:12px}
+ .lightbox{position:fixed;inset:0;background:rgba(10,14,20,.82);display:none;z-index:999}
+ .lightbox.on{display:block}
+ .lb-stage{position:absolute;inset:0;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
+ .lb-stage.grabbing{cursor:grabbing}
+ .lb-stage img{max-width:92vw;max-height:86vh;object-fit:contain;background:#fff;padding:10px;border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.4);user-select:none;pointer-events:none;will-change:transform}
+ .lb-cap{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:#dbe4ee;font-size:13px;padding:0 12px;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none}
+ .lb-tools{position:fixed;top:14px;right:16px;display:flex;gap:8px;z-index:1001}
+ .lb-tools button{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:6px 12px;font-size:14px;cursor:pointer}
+ .lb-tools button:hover{background:rgba(255,255,255,.3)}
+ .lb-tools .lb-x{background:#d9534f;border-color:#c9302c}
+ .lb-tools .lb-x:hover{background:#c9302c}
+ .preview-note{background:#fff8e6;border:1px solid #f0dcae;color:#8a6d1a;border-radius:6px;padding:8px 12px;font-size:12px;margin-bottom:12px}
+ .cropbox{position:fixed;inset:0;background:rgba(10,14,20,.82);display:none;align-items:center;justify-content:center;z-index:1000}
+ .cropbox.on{display:flex}
+ .cropbox .cwrap{background:#fff;border-radius:10px;padding:14px;max-width:95vw;max-height:94vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+ .cropbox canvas{background:#fff;max-width:100%;max-height:72vh;border:1px solid #ddd;border-radius:6px;cursor:crosshair}
+ .cropbox .row{display:flex;gap:10px;justify-content:flex-end}
+ .btn2{background:var(--ink);color:#fff;border:0;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+ .btn2:hover{opacity:.9;background:#35415a}
+
+ /* ===== 概览仪表盘 ===== */
+ .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+ .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(16,24,40,.05)}
+ .stat .n{font-size:32px;font-weight:700;color:var(--blue);line-height:1.1}
+ .stat .l{font-size:13px;color:var(--muted);margin-top:4px}
+ .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+ @media(max-width:760px){.two-col{grid-template-columns:1fr}}
+ .mini h4{margin:0 0 8px;font-size:13px;color:#16324f}
+ .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:13px}
+ .bar-row .name{width:110px;color:var(--ink);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .bar-track{flex:1;background:#eef1f6;border-radius:6px;height:14px;overflow:hidden}
+ .bar-fill{height:100%;background:linear-gradient(90deg,#3a86ff,#1e6fd0);border-radius:6px}
+ .bar-row .cnt{width:34px;text-align:right;color:var(--muted);font-weight:600;flex-shrink:0}
+ .pathlist{font-size:12.5px;color:var(--muted);line-height:1.8;word-break:break-all}
+ .pathlist b{color:var(--ink);font-weight:600}
+ .pathlist .dir{background:#f7f9fc;border:1px solid var(--line);border-radius:6px;padding:6px 10px;margin-bottom:6px}
+ .openbtn{display:block;margin-top:6px}
+ .openbtn button{padding:4px 12px;font-size:12px;background:#eef3f9;color:var(--blue);border:1px solid #d4e0ee;border-radius:6px}
+ .openbtn button:hover{background:#ddeafb}
+ .latest{font-size:13px}
+ .latest li{margin:5px 0;line-height:1.5}
+ .latest .no{font-weight:700;color:var(--blue);margin-right:6px}
+
+ /* ===== 知识卡片工具栏 ===== */
+ .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+ .toolbar .spacer{flex:1}
+</style></head><body>
+<div class="topbar">
+  <h1>化学文献库</h1>
+  <div class="nav">
+    <button id="navOverview" class="on" onclick="showView('overview')">概览</button>
+    <button id="navCards" onclick="showView('cards')">知识卡片</button>
+  </div>
+</div>
+<main>
+  <!-- ===== 概览 ===== -->
+  <div id="view-overview" class="view on">
+    <div id="overview"></div>
+  </div>
+
+  <!-- ===== 知识卡片 ===== -->
+  <div id="view-cards" class="view">
+  <div class="card"><h3>添加文章</h3>
+    <div class="row"><input id="addurl" type="text" placeholder="粘贴微信公众号/网页链接"><button id="addbtn" onclick="addByUrl()">抓取并入库</button></div>
+    <div class="row"><input id="addtext" type="text" placeholder="或粘贴文本"><button id="addbtn2" onclick="addByText()">文本入库</button></div>
+    <div class="row"><input id="fileIn" type="file" accept=".pdf,.txt,.html"><button id="uploadbtn" onclick="uploadFile()">上传PDF</button></div>
+  </div>
+  <div class="card"><h3>检索</h3><div class="row">
+    <input id="kw" type="text" placeholder="关键词 如：脱保护 / Diels-Alder"><button onclick="kwSearch()">搜</button>
+    <input id="smiles" type="text" placeholder="结构 SMILES 如 c1ccccc1"><button class="link" onclick="structSearch()">结构搜</button></div>
+    <div id="kwres"></div><div id="stres"></div>
+  </div>
+  <div class="toolbar">
+    <button class="green" onclick="exportPpt()">导出全部知识卡片为 PPT</button>
+    <span class="spacer"></span>
+  </div>
+  <div class="card"><h3>全部文献 <small>点击标题查看知识卡片</small></h3><div id="list"></div></div>
+  <div id="detail"></div>
+  </div>
+</main>
+<div class="lightbox" id="lb"><div class="lb-stage" id="lbStage"><img id="lbimg" alt=""></div><div class="lb-cap" id="lbcap"></div><div class="lb-tools"><button onclick="lbZoom(-1)" title="缩小">−</button><button onclick="lbZoom(1)" title="放大">＋</button><button onclick="lbReset()" title="复位">复位</button><button class="lb-x" onclick="closeLb()" title="关闭">×</button></div></div>
+<div class="cropbox" id="cropModal"><div class="cwrap">
+  <div style="font-size:13px;color:#333">按住鼠标在图上拖动，框选要保留的反应式/机理/底物范围区域，松开后点「保存裁剪」。</div>
+  <canvas id="cropCanvas"></canvas>
+  <div class="row"><button class="btn2" style="background:#909aa6" onclick="closeCrop()">取消</button><button class="btn2" onclick="saveCrop()">保存裁剪</button></div>
+</div></div>
+<script>
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function j(u,o){return fetch(u,o).then(async r=>{const t=await r.text();let d;try{d=JSON.parse(t)}catch(e){d=t}if(!r.ok)throw new Error((typeof d==='string'?d:(d&&d.detail))||('HTTP '+r.status));return d})}
+function cimg(s){return s?'<img src="/api/structure-preview?smiles='+encodeURIComponent(s)+'&w=520&h=300" onerror="this.style.display=\'none\'">':''}
+
+/* ---------- 视图切换 ---------- */
+function showView(v){
+  document.getElementById('view-overview').classList.toggle('on', v==='overview');
+  document.getElementById('view-cards').classList.toggle('on', v==='cards');
+  document.getElementById('navOverview').classList.toggle('on', v==='overview');
+  document.getElementById('navCards').classList.toggle('on', v==='cards');
+  if(v==='overview') loadOverview();
+  if(v==='cards') loadList();
+}
+
+/* ---------- 概览仪表盘 ---------- */
+function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(1)+' MB'}
+function bars(data, cond){
+  const items=(data||[]).slice().sort((a,b)=>b.count-a.count);
+  if(!items.length) return '<div class="empty">暂无数据，去“知识卡片”添加文献</div>';
+  const max=Math.max(...items.map(x=>x.count), 1);
+  return items.map(x=>'<div class="bar-row"><span class="name" title="'+esc(x.category||x.source_type)+'">'+esc(x.category||x.source_type)+'</span><div class="bar-track"><div class="bar-fill" style="width:'+(x.count/max*100)+'%"></div></div><span class="cnt">'+x.count+'</span></div>').join('');
+}
+function loadOverview(){
+  j('/api/stats').then(s=>{
+    const d=s.dirs||{};
+    const latest=s.latest||[];
+    const row='<div class="stat-grid">'
+      +'<div class="stat"><div class="n">'+s.total+'</div><div class="l">文献总数</div></div>'
+      +'<div class="stat"><div class="n">'+s.reactions+'</div><div class="l">反应条目</div></div>'
+      +'<div class="stat"><div class="n">'+s.images+'</div><div class="l">抓取图片</div></div>'
+      +'<div class="stat"><div class="n">'+s.compounds+'</div><div class="l">化合物结构</div></div>'
+      +'</div>';
+    const cat='<div class="card mini"><h4>分类情况</h4>'+bars(s.categories)+'</div>';
+    const src='<div class="card mini"><h4>来源类型</h4>'+bars(s.source_types)+'</div>';
+    const p='<div class="card mini"><h4>数据保存位置</h4><div class="pathlist">'
+      +'<div class="dir"><b>原文/转写（PDF、公众号 HTML、txt）</b><br>'+esc(d.articles_dir||'')+'　·　'+d.articles_file_count+' 个文件 · '+fmtSize(d.articles_size||0)
+      +'<span class="openbtn"><button onclick="openArticlesFolder()">打开文件夹</button></span></div>'
+      +'<div class="dir"><b>抓取图片</b><br>'+esc(d.images_dir||'')+'　·　'+d.images_file_count+' 个文件 · '+fmtSize(d.images_size||0)+'</div>'
+      +'<div class="dir"><b>数据库</b><br>'+esc(d.db_path||'')+'　·　'+fmtSize(d.db_size||0)+'</div>'
+      +'</div></div>';
+    const latestHtml=latest.length?('<div class="card mini"><h4>最近收录</h4><ul class="latest">'+latest.map(x=>'<li><a href="#" onclick="openCard('+x.id+');return false"><span class="no">'+esc(x.card_no)+'</span>'+(x.category?'<span style="color:#1e6fd0;font-size:12px">['+esc(x.category)+'] </span>':'')+esc(x.title)+'</a></li>').join('')+'</ul></div>'):'';
+    const body=row
+      +'<div class="two-col">'+cat+src+'</div>'
+      +'<div class="two-col" style="margin-top:14px">'+p+latestHtml+'</div>'
+      +'<div class="card mini" style="margin-top:14px"><h4>操作提示</h4><div class="pathlist">'
+      +'<div>· 顶部切换到 <b>知识卡片</b> 添加文献、关键词/结构检索、导出 PPT；本页面的保存位置含“打开文件夹”按钮。</div>'
+      +'<div>· 双击桌面图标可打开本窗口；也可用浏览器访问 <b>127.0.0.1:8011</b>。</div>'
+      +'</div></div>';
+    document.getElementById('overview').innerHTML=body;
+  }).catch(e=>{document.getElementById('overview').innerHTML='<div class="empty">加载概览失败：'+esc(e.message)+'</div>'});
+}
+async function exportPpt(article_id){
+  const url=article_id?('/api/export/ppt?article_id='+article_id):'/api/export/ppt';
+  try{
+    window.open(url,'_blank');
+  }catch(e){alert('导出失败：'+e.message)}
+}
+async function openArticlesFolder(){
+  try{
+    const r=await j('/api/open/articles');
+    if(confirm('已打开存放原文/PDF 的文件夹：\n'+r.path)){/* 留空，提示即可 */}
+  }catch(e){alert('打开文件夹失败：'+e.message)}
+}
+
+async function addByUrl(){await postAdd({url:document.getElementById('addurl').value},document.getElementById('addbtn'))}
+async function addByText(){await postAdd({text:document.getElementById('addtext').value},document.getElementById('addbtn2'))}
+async function postAdd(p,b){const old=b.textContent;b.disabled=true;b.textContent='处理中(约15-30s)...';try{let x=await j('/api/articles/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});if(x&&x.duplicate){const e=x.existing;const ok=confirm('检测到重复：库中已有 编号 '+e.card_no+'｜《'+e.title+'》｜抓取时间 '+e.created_at+'。\n仍要强制入库吗？');if(!ok){return}const y=await j('/api/articles/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},p,{force:true}))});loadList();showDetail(y.id);alert('已强制入库 #'+y.id);return}loadList();showDetail(x.id);alert('已入库 #'+x.id+'（'+x.card_no+'）');}catch(e){alert('入库失败：'+e.message)}finally{b.disabled=false;b.textContent=old}}
+async function uploadFile(){const f=document.getElementById('fileIn').files[0];if(!f){alert('请先选择文件');return}const b=document.getElementById('uploadbtn');if(b.disabled)return;b.disabled=true;b.textContent='正在解析和分析，请稍候…';const fd=new FormData();fd.append('file',f);try{const x=await j('/api/articles/upload',{method:'POST',body:fd});await loadList();if(x.duplicate){await showDetail(x.existing.id);alert('已收录此文献：'+x.existing.card_no+'，已打开原卡片。');return}await showDetail(x.id);alert('已入库 #'+x.id+'（'+x.card_no+'）')}catch(e){alert('上传失败：'+e.message)}finally{b.disabled=false;b.textContent='上传PDF'}}
+function kwSearch(){const q=document.getElementById('kw').value;if(!q)return;j('/api/search?q='+encodeURIComponent(q)).then(r=>{document.getElementById('kwres').innerHTML=r.length?('<table><tr><th>ID</th><th>命中</th><th>标题</th><th>期刊</th></tr>'+r.map(x=>'<tr><td>'+x.id+'</td><td>'+x.hits+'</td><td><a href="#" onclick="showDetail('+x.id+');return false">'+esc(x.title)+'</a></td><td>'+esc(x.journal||'')+'</td></tr>').join('')+'</table>'):'<div class="empty">无结果</div>'}).catch(e=>alert(e.message))}
+function structSearch(){const s=document.getElementById('smiles').value;if(!s)return;j('/api/search/structure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({smiles:s})}).then(r=>{document.getElementById('stres').innerHTML=r.length?('<table><tr><th>文章</th><th>结构</th><th>相似</th><th>子结构</th></tr>'+r.map(x=>'<tr><td><a href="#" onclick="showDetail('+x.article_id+');return false">'+x.article_id+'</a></td><td>'+esc(x.name)+'</td><td>'+x.similarity+'</td><td>'+(x.substructure_match?'✓':'')+'</td></tr>').join('')+'</table>'):'<div class="empty">无命中结构</div>'}).catch(e=>alert(e.message))}
+function loadList(){return j('/api/articles').then(r=>{document.getElementById('list').innerHTML=r.length?('<table><tr><th>ID</th><th>来源</th><th>标题</th><th>期刊</th></tr>'+r.map(x=>'<tr><td>'+x.id+'</td><td>'+esc(x.source_type)+'</td><td><a href="#" onclick="showDetail('+x.id+');return false">'+esc(x.title)+'</a></td><td>'+esc(x.journal||'')+'</td></tr>').join('')+'</table>'):'<div class="empty">库为空，先添加文章</div>'}).catch(e=>alert(e.message))}
+
+/* ---------- 知识卡片（固定版式，图片优先） ---------- */
+function pickReactions(rxs){
+  const sc=(rxs||[]).map(r=>{let s=0;if(r.yield_)s+=2;if(r.conditions_text)s+=1;if(r.reagent&&r.reagent.length)s+=1;return {r,s}});
+  sc.sort((a,b)=>b.s-a.s);
+  const seen=new Set(),out=[];
+  for(const x of sc){
+    const key=(x.r.name||'')+'|'+((x.r.reactants||[]).map(y=>y.name||'').join('+'))+'>'+((x.r.products||[]).map(y=>y.name||'').join('+'));
+    if(seen.has(key))continue;seen.add(key);out.push(x.r);if(out.length>=2)break;
+  }
+  return out;
+}
+function topicOf(a){const ex=a.extracted||{},kw=ex.keywords||{},rxs=ex.reactions||[];const rt=(kw.reactions&&kw.reactions[0])||(rxs[0]&&rxs[0].name)||'';const core=(kw.tags&&kw.tags.slice(0,2).join(' · '))||(ex.article&&ex.article.title||'');return (rt?rt+' · ':'')+core||(ex.article&&ex.article.title||'')}
+function mapCategory(a){const s=JSON.stringify(a.extracted||{});const m=[['偶联',/suzuki|sonogashira|buchwald|stille|偶联|coupling/i],['保护与脱保护',/脱保护|deprotect|保护基|苄基|pmb|boc|cbz|fmo/i],['氧化',/氧化|氧化剂|tempo|pifa|pida|oxidation/i],['还原',/还原|氢化|氢解|还原胺化|reduction|hydrogenation/i],['环加成',/环加成|diels|cycloaddition|\[4\+2\]/i],['金属有机',/格氏|grignard|有机锂|羰基化|转金属化|插羰/i],['缩合与成环',/酰胺|酯化|缩合|多组分|ugi|passerini|amide|ester/i],['重排',/重排|rearrangement|curtius|beckmann|hoffmann/i]];for(const c of m){if(c[1].test(s))return c[0]}return '其它'}
+function num(id){return 'KC-'+String(id).padStart(4,'0')}
+function metaLine(x){return [x.journal,x.year,x.volume&&('卷 '+x.volume),x.issue&&('期 '+x.issue),x.pages].filter(Boolean).join(' · ')}
+function cardNo(a){return a.card_no||num(a.id||'0')}
+function figdiv(label,sm,img){let inner='';if(img){inner='<img src="/images/'+encodeURIComponent(img)+'" alt="'+esc(label)+'" title="点击放大" onclick="lbOpen(this.src,this.alt)">'}else if(sm){inner=cimg(sm)}return '<div class="fig">'+inner+(inner?'':'<span data-ph>（'+label+'）</span>')+'</div>'}
+function isFig(p){return /_10\d{2}\.png$/.test(p||'')||/^crop_/.test(p||'')}
+function orderImgs(arr){const a=Array.isArray(arr)?arr:[];return a.slice().sort((x,y)=>(isFig(y.path)?1:0)-(isFig(x.path)?1:0))}
+function mechPage(a){
+  const ex=a.extracted||{},mech=ex.mechanism||{},hasMechImg=(a.images||[]).some(x=>x.role==='mechanism');if(!(mech.overall||(mech.steps||[]).length||hasMechImg))return '';
+  const aImgs=orderImgs(a.images),imgs=aImgs.map(x=>x.path);
+  const mimg=((aImgs.filter(x=>x.role==='mechanism').length?aImgs.filter(x=>x.role==='mechanism').map(x=>x.path):[imgs[3]||''])[0])||'';
+  return '<div class="page"><div class="page-head"><div class="ph"><b>文献期刊信息</b><div class="val">'+esc(metaLine(ex.article||{}))+'</div></div><div class="ph small"><b>知识卡片序号</b><div class="val">'+esc(cardNo(a))+'</div></div></div>'+
+   '<div class="topic"><div class="lbl">反应机理</div><div class="t">'+esc(topicOf(a))+'</div></div>'+
+   '<div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">'+
+   figdiv('机理图（原文有图则抓取）','',mimg)+
+   (mech.overall?'<div class="mech">'+esc(String(mech.overall).slice(0,220))+'</div>':'')+'</div>'+
+   '<div class="page-foot"><span>机理页</span><span>化学文献库 · '+esc(cardNo(a))+'</span></div></div>';
+}
+function cardPage1(a){
+  const ex=a.extracted||{},art=ex.article||{},rxs=pickReactions(ex.reactions),scope=ex.substrate_scope||{};
+  const aImgs=orderImgs(a.images),imgs=aImgs.map(x=>x.path);
+  const cat=a.category||mapCategory(a);
+  // 知识卡片只放文章主反应式；其它 Figure/Table（例如条件优化表）不重复占位。
+  const rxSet=[...new Set(aImgs.filter(x=>x.role==='reaction').map(x=>x.path))].slice(0,1);
+  const rxImgs=rxSet.length?rxSet:(imgs[0]?[imgs[0]]:[]);
+  const scimg=((aImgs.filter(x=>x.role==='scope').length?[aImgs.find(x=>x.role==='scope').path]:[imgs[2]||''])[0])||'';
+  const rxFigs=rxImgs.length?('<div class="rxfigs">'+rxImgs.map(p=>figdiv('反应式图','',p)).join('')+'</div>'):figdiv('未提取到典型反应式图','','');
+  return '<div class="page"><div class="page-head">'+
+   '<div class="ph"><b>文献期刊信息</b><div class="val">'+esc(metaLine(art)||'（未识别期刊信息）')+'</div></div>'+
+   '<div class="ph small"><b>抓取时间</b><div class="val">'+esc(art.retrieved_at||'')+'</div></div>'+
+   '<div class="ph small"><b>知识卡片序号</b><div class="val">'+esc(cardNo(a))+'</div></div></div>'+
+   '<div class="topic"><div class="lbl">文章主题</div><div class="t">'+esc(topicOf(a))+'</div></div>'+
+   '<div class="grid">'+
+     '<div class="box rx-col"><div class="lbl"><b>文章的典型反应式</b>（取最关键 1 个，仅图）</div>'+rxFigs+'</div>'+ 
+     '<div class="box"><div class="lbl"><b>底物适用范围</b></div>'+figdiv('底物范围图','',scimg)+'<div class="cap sc">'+esc((scope.summary||'').slice(0,100))+'</div></div>'+
+     '<div class="box"><div class="lbl"><b>对反应的关键影响因素</b></div><div class="cap">'+esc((scope.notes||'（未提取到关键影响因素）').slice(0,400))+'</div></div>'+ 
+   '</div>'+
+   '<div class="page-foot"><span><b>分类：</b>'+esc(cat)+'</span><span>化学文献库 · '+esc(cardNo(a))+'</span></div></div>';
+}
+function renderCard(a){
+  document.getElementById('detail').innerHTML='<div class="preview-note">知识卡片：编号/分类已生成；图片已按内容自动匹配（反应式/底物范围/机理），如某张不准，可在下方“图片分配”里手动改它的用途。</div><div class="doc">'+cardPage1(a)+mechPage(a)+'</div>'+imagePanel(a);
+}
+function imagePanel(a){
+  const imgs=a.images||[];if(!imgs.length)return '';
+  const opts=[['other','其它'],['scope','底物适用范围'],['reaction','典型反应式'],['mechanism','反应机理'],['conditions','反应条件优化']];
+  const cur=x=>opts.some(o=>o[0]===x.role)?x.role:'other';
+  return '<div class="card"><h3>图片分配：把某张图指定到对应区域；对整页图可点「裁剪」框选某张反应式/机理/底物图</h3><div class="imgassign">'+imgs.map(x=>'<div class="ia-item"><img src="/images/'+encodeURIComponent(x.path)+'" alt="'+esc(x.path)+'" onclick="previewImg(this.src,this.alt)" onerror="this.style.display=\'none\'">'+
+    '<select onchange="setRole('+x.id+',this.value)">'+opts.map(o=>'<option value="'+o[0]+'"'+(cur(x)===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="btn2" onclick="openCrop(\''+x.path+'\','+a.id+',this)">裁剪</button></div>').join('')+'</div></div>';
+}
+async function setRole(id,role){try{await j('/api/images/'+id+'/role',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:role})});if(window.__cur)showDetail(window.__cur)}catch(e){alert(e.message)}}
+function openCrop(path,articleId,btn){
+  const modal=document.getElementById('cropModal'),cv=document.getElementById('cropCanvas');
+  const sel=btn?btn.parentElement.querySelector('select'):null;
+  window.__crop={path:path,articleId:articleId,role:sel?sel.value:'reaction',sel:null,drag:null,img:null,scale:1};
+  const img=new Image();
+  img.onload=()=>{const maxW=Math.min(window.innerWidth-140,1000),maxH=Math.min(window.innerHeight-180,820);
+    let sc=Math.min(maxW/img.width,maxH/img.height,1);
+    cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+    window.__crop.scale=sc;window.__crop.img=img;
+    const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0,cv.width,cv.height);
+    drawCrop();};
+  img.src='/images/'+encodeURIComponent(path);
+  modal.classList.add('on');
+}
+function closeCrop(){document.getElementById('cropModal').classList.remove('on');window.__crop=null}
+function cropPos(e){const cv=document.getElementById('cropCanvas');const r=cv.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*(cv.width/r.width),y:(e.clientY-r.top)*(cv.height/r.height)}}
+function cropDown(e){const p=cropPos(e);window.__crop.drag={x0:p.x,y0:p.y,x:p.x,y:p.y};e.preventDefault()}
+function cropMove(e){const d=window.__crop;if(!d||!d.drag)return;const p=cropPos(e);d.drag.x=p.x;d.drag.y=p.y;drawCrop()}
+function cropUp(e){const d=window.__crop;if(!d||!d.drag)return;const dd=d.drag;
+  d.sel={x0:Math.min(dd.x0,dd.x),y0:Math.min(dd.y0,dd.y),x1:Math.max(dd.x0,dd.x),y1:Math.max(dd.y0,dd.y)};d.drag=null;drawCrop()}
+function drawCrop(){const cv=document.getElementById('cropCanvas'),ctx=cv.getContext('2d'),d=window.__crop;if(!d)return;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);if(d.img)ctx.drawImage(d.img,0,0,cv.width,cv.height);
+  let s=d.sel;if(!s&&d.drag)s={x0:Math.min(d.drag.x0,d.drag.x),y0:Math.min(d.drag.y0,d.drag.y),x1:Math.max(d.drag.x0,d.drag.x),y1:Math.max(d.drag.y0,d.drag.y)};
+  if(s){ctx.fillStyle='rgba(30,110,220,.22)';ctx.strokeStyle='#1e6edc';ctx.lineWidth=2;
+    ctx.fillRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);ctx.strokeRect(s.x0,s.y0,s.x1-s.x0,s.y1-s.y0);}}
+async function saveCrop(){const d=window.__crop;if(!d||!d.sel){alert('请先框选要裁剪的区域');return}
+  const cv=document.getElementById('cropCanvas');
+  const body={article_id:d.articleId,name:d.path,x0:d.sel.x0/cv.width,y0:d.sel.y0/cv.height,x1:d.sel.x1/cv.width,y1:d.sel.y1/cv.height,role:d.role};
+  try{await j('/api/images/crop',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    closeCrop();if(window.__cur)showDetail(window.__cur)}catch(e){alert(e.message)}}
+(function(){const cv=document.getElementById('cropCanvas');if(cv){cv.addEventListener('mousedown',cropDown);
+  window.addEventListener('mousemove',cropMove);window.addEventListener('mouseup',cropUp);}})();
+let __lb={scale:1,tx:0,ty:0,drag:null,baseW:0,baseH:0};
+function lbOpen(src,name){
+  const img=document.getElementById('lbimg'),stage=document.getElementById('lbStage');
+  __lb={scale:1,tx:0,ty:0,drag:null,baseW:0,baseH:0};
+  img.onload=()=>{__lb.baseW=img.offsetWidth;__lb.baseH=img.offsetHeight;lbApply();};
+  img.src=src;img.alt=name||'';
+  document.getElementById('lbcap').textContent=name||'';
+  document.getElementById('lb').classList.add('on');lbApply();
+}
+function previewImg(src,name){lbOpen(src,name)}
+function lbApply(){
+  const img=document.getElementById('lbimg'),stage=document.getElementById('lbStage');
+  if(!img||!stage)return;
+  const w=(__lb.baseW||img.offsetWidth||1)*__lb.scale,h=(__lb.baseH||img.offsetHeight||1)*__lb.scale;
+  const maxTx=Math.max(0,(w-stage.clientWidth)/2),maxTy=Math.max(0,(h-stage.clientHeight)/2);
+  __lb.tx=Math.max(-maxTx,Math.min(maxTx,__lb.tx));
+  __lb.ty=Math.max(-maxTy,Math.min(maxTy,__lb.ty));
+  img.style.transform='translate('+__lb.tx+'px,'+__lb.ty+'px) scale('+__lb.scale+')';
+}
+function lbZoom(d){__lb.scale=Math.min(8,Math.max(0.5,__lb.scale*(d>0?1.25:0.8)));lbApply()}
+function lbReset(){__lb.scale=1;__lb.tx=0;__lb.ty=0;lbApply()}
+function closeLb(){document.getElementById('lb').classList.remove('on')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
+(function(){const st=document.getElementById('lbStage');if(!st)return;
+  st.addEventListener('pointerdown',e=>{__lb.drag={x:e.clientX,y:e.clientY,tx:__lb.tx,ty:__lb.ty,moved:false};st.classList.add('grabbing');st.setPointerCapture(e.pointerId);e.preventDefault();});
+  st.addEventListener('pointermove',e=>{const d=__lb.drag;if(!d)return;const dx=e.clientX-d.x,dy=e.clientY-d.y;if(Math.abs(dx)+Math.abs(dy)>4)d.moved=true;__lb.tx=d.tx+dx;__lb.ty=d.ty+dy;lbApply();});
+  st.addEventListener('pointerup',e=>{const d=__lb.drag;st.classList.remove('grabbing');__lb.drag=null;if(d&&!d.moved)closeLb();});
+  st.addEventListener('wheel',e=>{e.preventDefault();const r=st.getBoundingClientRect();const cx=e.clientX-r.left-r.width/2,cy=e.clientY-r.top-r.height/2;const f=e.deltaY<0?1.15:0.87;const s=__lb.scale,ns=Math.min(8,Math.max(0.5,s*f));const wx=(cx-__lb.tx)/s,wy=(cy-__lb.ty)/s;__lb.scale=ns;__lb.tx=cx-ns*wx;__lb.ty=cy-ns*wy;lbApply();},{passive:false});
+})();
+function showDetail(id){window.__cur=id;j('/api/articles/'+id).then(a=>renderCard(a)).catch(e=>{document.getElementById('detail').innerHTML='<div class="empty">'+esc(e.message)+'</div>'})}
+function openCard(id){showView('cards');loadList().then(()=>showDetail(id));}
+loadOverview();
+</script></body></html>
