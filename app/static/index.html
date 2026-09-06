@@ -59,6 +59,7 @@
  .ia-item img{max-width:100%;max-height:160px;object-fit:contain;background:#fff;border-radius:4px;cursor:zoom-in;display:block;margin:0 auto}
  .ia-item img:hover{border:1px solid var(--blue)}
  .ia-item select{width:100%;margin-top:5px;padding:4px;border:1px solid #d4dbe4;border-radius:6px;font-size:12px}
+ .ia-rs{font-size:11px;color:var(--muted);margin-top:2px}
  .lightbox{position:fixed;inset:0;background:rgba(10,14,20,.82);display:none;z-index:999}
  .lightbox.on{display:block}
  .lb-stage{position:absolute;inset:0;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
@@ -234,17 +235,17 @@ function mapCategory(a){const s=JSON.stringify(a.extracted||{});const m=[['偶�
 function num(id){return 'KC-'+String(id).padStart(4,'0')}
 function metaLine(x){return [x.journal,x.year,x.volume&&('卷 '+x.volume),x.issue&&('期 '+x.issue),x.pages].filter(Boolean).join(' · ')}
 function cardNo(a){return a.card_no||num(a.id||'0')}
-function figdiv(label,sm,img){let inner='';if(img){inner='<img src="/images/'+encodeURIComponent(img)+'" alt="'+esc(label)+'" title="点击放大" onclick="lbOpen(this.src,this.alt)">'}else if(sm){inner=cimg(sm)}return '<div class="fig">'+inner+(inner?'':'<span data-ph>（'+label+'）</span>')+'</div>'}
+function figdiv(label,sm,img,ph){let inner='';if(img){inner='<img src="/images/'+encodeURIComponent(img)+'" alt="'+esc(label)+'" title="点击放大" onclick="lbOpen(this.src,this.alt)">'}else if(sm){inner=cimg(sm)}const phText=ph!=null?ph:('（'+label+'）');return '<div class="fig">'+inner+(inner?'':'<span data-ph>'+esc(phText)+'</span>')+'</div>'}
 function isFig(p){return /_10\d{2}\.png$/.test(p||'')||/^crop_/.test(p||'')}
 function orderImgs(arr){const a=Array.isArray(arr)?arr:[];return a.slice().sort((x,y)=>(isFig(y.path)?1:0)-(isFig(x.path)?1:0))}
 function mechPage(a){
   const ex=a.extracted||{},mech=ex.mechanism||{},hasMechImg=(a.images||[]).some(x=>x.role==='mechanism');if(!(mech.overall||(mech.steps||[]).length||hasMechImg))return '';
   const aImgs=orderImgs(a.images),imgs=aImgs.map(x=>x.path);
-  const mimg=((aImgs.filter(x=>x.role==='mechanism').length?aImgs.filter(x=>x.role==='mechanism').map(x=>x.path):[imgs[3]||''])[0])||'';
+  const mimg=(aImgs.find(x=>x.role==='mechanism')||{}).path||'';
   return '<div class="page"><div class="page-head"><div class="ph"><b>文献期刊信息</b><div class="val">'+esc(metaLine(ex.article||{}))+'</div></div><div class="ph small"><b>知识卡片序号</b><div class="val">'+esc(cardNo(a))+'</div></div></div>'+
    '<div class="topic"><div class="lbl">反应机理</div><div class="t">'+esc(topicOf(a))+'</div></div>'+
    '<div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px">'+
-   figdiv('机理图（原文有图则抓取）','',mimg)+
+   figdiv('机理图（原文有图则抓取）','',mimg,'文章未提供')+
    (mech.overall?'<div class="mech">'+esc(String(mech.overall).slice(0,220))+'</div>':'')+'</div>'+
    '<div class="page-foot"><span>机理页</span><span>化学文献库 · '+esc(cardNo(a))+'</span></div></div>';
 }
@@ -255,7 +256,7 @@ function cardPage1(a){
   // 知识卡片只放文章主反应式；其它 Figure/Table（例如条件优化表）不重复占位。
   const rxSet=[...new Set(aImgs.filter(x=>x.role==='reaction').map(x=>x.path))].slice(0,1);
   const rxImgs=rxSet.length?rxSet:(imgs[0]?[imgs[0]]:[]);
-  const scimg=((aImgs.filter(x=>x.role==='scope').length?[aImgs.find(x=>x.role==='scope').path]:[imgs[2]||''])[0])||'';
+  const scimg=(aImgs.find(x=>x.role==='scope')||{}).path||'';
   const rxFigs=rxImgs.length?('<div class="rxfigs">'+rxImgs.map(p=>figdiv('反应式图','',p)).join('')+'</div>'):figdiv('未提取到典型反应式图','','');
   return '<div class="page"><div class="page-head">'+
    '<div class="ph"><b>文献期刊信息</b><div class="val">'+esc(metaLine(art)||'（未识别期刊信息）')+'</div></div>'+
@@ -264,7 +265,7 @@ function cardPage1(a){
    '<div class="topic"><div class="lbl">文章主题</div><div class="t">'+esc(topicOf(a))+'</div></div>'+
    '<div class="grid">'+
      '<div class="box rx-col"><div class="lbl"><b>文章的典型反应式</b>（取最关键 1 个，仅图）</div>'+rxFigs+'</div>'+ 
-     '<div class="box"><div class="lbl"><b>底物适用范围</b></div>'+figdiv('底物范围图','',scimg)+'<div class="cap sc">'+esc((scope.summary||'').slice(0,100))+'</div></div>'+
+     '<div class="box"><div class="lbl"><b>底物适用范围</b></div>'+figdiv('底物范围图','',scimg,'文章未提供')+'<div class="cap sc">'+esc((scope.summary||'').slice(0,100))+'</div></div>'+
      '<div class="box"><div class="lbl"><b>对反应的关键影响因素</b></div><div class="cap">'+esc((scope.notes||'（未提取到关键影响因素）').slice(0,400))+'</div></div>'+ 
    '</div>'+
    '<div class="page-foot"><span><b>分类：</b>'+esc(cat)+'</span><span>化学文献库 · '+esc(cardNo(a))+'</span></div></div>';
@@ -277,8 +278,9 @@ function imagePanel(a){
   const opts=[['other','其它'],['scope','底物适用范围'],['reaction','典型反应式'],['mechanism','反应机理'],['conditions','反应条件优化']];
   const cur=x=>opts.some(o=>o[0]===x.role)?x.role:'other';
   return '<div class="card"><h3>图片分配：把某张图指定到对应区域；对整页图可点「裁剪」框选某张反应式/机理/底物图</h3><div class="imgassign">'+imgs.map(x=>'<div class="ia-item"><img src="/images/'+encodeURIComponent(x.path)+'" alt="'+esc(x.path)+'" onclick="previewImg(this.src,this.alt)" onerror="this.style.display=\'none\'">'+
-    '<select onchange="setRole('+x.id+',this.value)">'+opts.map(o=>'<option value="'+o[0]+'"'+(cur(x)===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button class="btn2" onclick="openCrop(\''+x.path+'\','+a.id+',this)">裁剪</button></div>').join('')+'</div></div>';
+    '<select onchange="setRole('+x.id+',this.value)">'+opts.map(o=>'<option value="'+o[0]+'"'+(cur(x)===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><div class="ia-rs">'+esc(reviewLabel(x))+'</div><button class="btn2" onclick="openCrop(\''+x.path+'\','+a.id+',this)">裁剪</button></div>').join('')+'</div></div>';
 }
+function reviewLabel(x){const m={primary:'规则/分类',review_pass:'审核通过',review_reject:'审核否定',review_error:'审核失败',manual:'手动','':'未审核'};return m[(x.review_status||'')]||'未审核'}
 async function setRole(id,role){try{await j('/api/images/'+id+'/role',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:role})});if(window.__cur)showDetail(window.__cur)}catch(e){alert(e.message)}}
 function openCrop(path,articleId,btn){
   const modal=document.getElementById('cropModal'),cv=document.getElementById('cropCanvas');

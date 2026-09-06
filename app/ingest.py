@@ -385,6 +385,55 @@ def _guess_source_type(url: str) -> str:
     return "web"
 
 
+
+CARD_REGIONS = [
+    ("reaction", "主反应通式/典型反应式"),
+    ("scope", "底物适用范围（底物范围/底物范围表）"),
+    ("mechanism", "反应机理图"),
+]
+REVIEW_LIMIT_PER_REGION = 3
+
+
+def _audit_card_images(img_objs: List[Dict[str, str]], candidate_paths: set) -> None:
+    """对知识卡片图片做内容审核。
+
+    优先信任“图注规则 + 单词分类”（primary）；某卡片区域无命中时，用多模态视觉
+    内容审核从已抽取候选图里重选（否定不符的、取第一张匹配的）；
+    若仍无匹配，则区域留空，由卡片/PPT 显示“文章未提供”。
+    """
+    for region, label in CARD_REGIONS:
+        # 已有该区域的图（图注/分类命中）→ 信任，不做额外审核
+        if any(im.get("role") == region for im in img_objs):
+            for im in img_objs:
+                if im.get("role") == region:
+                    im.setdefault("review_status", "primary")
+            continue
+        # 候选 = 已抽取的裁剪图里，尚未被占用到其它卡片区域的图
+        candidates = [im for im in img_objs
+                      if im.get("path") in candidate_paths
+                      and im.get("role") not in ("reaction", "scope", "mechanism")]
+        if not candidates:
+            continue
+        tried = 0
+        for im in candidates:
+            if tried >= REVIEW_LIMIT_PER_REGION:
+                break
+            tried += 1
+            try:
+                match, reason = vision.review_image(
+                    str(config.IMAGES_DIR / im["path"]), region)
+            except Exception:
+                match, reason = None, "review_failed"
+            if match is None:
+                im["review_status"] = "review_error"
+            elif match:
+                im["role"] = region
+                im["review_status"] = "review_pass"
+                break
+            else:
+                im["review_status"] = "review_reject"
+
+
 def ingest(source: str) -> Dict:
     """摄入来源：URL / PDF 文件 / 文本|文本文件。返回 meta 与文本等。"""
     now = datetime.now().isoformat(timespec="seconds")
@@ -462,10 +511,13 @@ def ingest(source: str) -> Dict:
         uncertain = [i for i, n in enumerate(images) if n not in preset_roles]
         tagged = vision.tag_images([full[i] for i in uncertain]) if uncertain else []
         tag_by_index = {i: role for i, (_, role) in zip(uncertain, tagged)}
-        img_objs = [{"path": images[i], "role": preset_roles.get(images[i], tag_by_index.get(i, "other"))}
+        img_objs = [{"path": images[i], "role": preset_roles.get(images[i], tag_by_index.get(i, "other")),
+                     "review_status": "primary"}
                     for i in range(len(images))]
     # 整页图仅供人工裁剪，不能被自动分到反应式/机理槽。
-    img_objs.extend({"path": name, "role": "other"} for name in page_images)
+    img_objs.extend({"path": name, "role": "other", "review_status": ""} for name in page_images)
+    # 卡片图片内容审核：无命中的区域用多模态视觉从候选图里重选，并否定不符的图。
+    _audit_card_images(img_objs, set(images))
     return {"meta": meta, "text": text, "images": img_objs,
             "raw_path": raw_path, "text_path": text_path}
 

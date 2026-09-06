@@ -354,11 +354,11 @@ def _slide_main(prs, article: Dict[str, Any]) -> None:
     sr.font.size = Pt(10)
     sr.font.color.rgb = INK
     sr.font.bold = True
-    scope_img = _image_src(article, "scope", fallback_idx=2)
+    scope_img = _image_src(article, "scope")
     _add_picture_or_placeholder(slide, scope_img,
                                 right_left + Inches(0.2), grid_top + Inches(0.42),
                                 right_w - Inches(0.4), half_h - Inches(0.9),
-                                "底物范围图")
+                                "文章未提供")
     summary = (scope.get("summary") or "")[:100]
     if summary:
         tb = slide.shapes.add_textbox(right_left + Inches(0.2),
@@ -409,10 +409,10 @@ def _slide_mechanism(prs, article: Dict[str, Any]) -> None:
 
     top = Inches(2.5)
     bottom = SH - Inches(0.7)
-    mimg = _image_src(article, "mechanism", fallback_idx=3)
+    mimg = _image_src(article, "mechanism")
     _add_picture_or_placeholder(slide, mimg,
                                 MARGIN, top, SW - MARGIN * 2, bottom - top - Inches(0.6),
-                                "机理图（原文有图则抓取）")
+                                "文章未提供")
     overall = (mech.get("overall") or "")[:220]
     if overall:
         tb = slide.shapes.add_textbox(MARGIN, bottom - Inches(0.5),

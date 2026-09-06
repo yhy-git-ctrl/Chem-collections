@@ -113,7 +113,7 @@ def add_article(payload: AddPayload):
         article_id = store_article(ex, data["raw_path"], data["text_path"],
                                    category=category)
         insert_images(article_id, [i["path"] for i in data["images"]],
-                      [i["role"] for i in data["images"]])
+                      [i["role"] for i in data["images"]], [i.get("review_status", "") for i in data["images"]])
         info = get_card_info(article_id)
     except HTTPException:
         raise
@@ -157,7 +157,7 @@ def upload_article(file: UploadFile = File(...)):
         article_id = store_article(ex, data["raw_path"], data["text_path"],
                                    category=category)
         insert_images(article_id, [i["path"] for i in data["images"]],
-                      [i["role"] for i in data["images"]])
+                      [i["role"] for i in data["images"]], [i.get("review_status", "") for i in data["images"]])
         info = get_card_info(article_id)
     except Exception as e:
         raise HTTPException(502, detail=f"处理失败：{e}")

@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS compounds(
 CREATE TABLE IF NOT EXISTS images(
   id INTEGER PRIMARY KEY AUTOINCREMENT, article_id INTEGER, path TEXT, caption TEXT,
   role TEXT,
+  review_status TEXT,
   FOREIGN KEY(article_id) REFERENCES articles(id)
 );
 CREATE TABLE IF NOT EXISTS tokens(
@@ -80,6 +81,8 @@ def _migrate(conn: sqlite3.Connection) -> None:
     img_cols = {r[1] for r in conn.execute("PRAGMA table_info(images)")}
     if "role" not in img_cols:
         conn.execute("ALTER TABLE images ADD COLUMN role TEXT")
+    if "review_status" not in img_cols:
+        conn.execute("ALTER TABLE images ADD COLUMN review_status TEXT")
     # 旧数据回填：没有编号/分类的文章按 id 顺序补
     rows = conn.execute(
         "SELECT id, extracted_json FROM articles "
@@ -289,17 +292,19 @@ def collect_compounds(extracted: ExtractedArticle) -> List[Dict[str, str]]:
 
 
 def insert_images(article_id: int, image_paths: List[str],
-                  roles: List[str] | None = None) -> None:
+                  roles: List[str] | None = None,
+                  review_status: List[str] | None = None) -> None:
     with _get_conn() as conn:
         for i, p in enumerate(image_paths):
             role = (roles[i] if roles and i < len(roles) else "") or ""
-            conn.execute("INSERT INTO images(article_id, path, role) VALUES(?,?,?)",
-                         (article_id, p, role))
+            rv = (review_status[i] if review_status and i < len(review_status) else "") or ""
+            conn.execute("INSERT INTO images(article_id, path, role, review_status) VALUES(?,?,?,?)",
+                         (article_id, p, role, rv))
 
 
 def set_image_role(image_id: int, role: str) -> None:
     with _get_conn() as conn:
-        conn.execute("UPDATE images SET role=? WHERE id=?", (role, image_id))
+        conn.execute("UPDATE images SET role=?, review_status='manual' WHERE id=?", (role, image_id))
         conn.commit()
 
 
@@ -324,7 +329,7 @@ def get_article(article_id: int) -> Dict[str, Any]:
             "SELECT id,name,smiles,canonical_smiles,role,molblock FROM compounds "
             "WHERE article_id=? ORDER BY id", (article_id,))]
         art["images"] = [dict(i) for i in conn.execute(
-            "SELECT id,path,caption,role FROM images WHERE article_id=? ORDER BY id",
+            "SELECT id,path,caption,role,review_status FROM images WHERE article_id=? ORDER BY id",
             (article_id,))]
     return art
 
